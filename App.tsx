@@ -32,19 +32,19 @@ const App: React.FC = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 p-4">
             <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border-l-4 border-red-500">
-                <h2 className="text-2xl font-bold text-red-600 mb-4">Connection Error</h2>
-                <p className="mb-4 text-gray-600">Could not connect to the database.</p>
-                <div className="bg-gray-100 p-4 rounded text-sm font-mono text-gray-700 overflow-x-auto mb-4">
-                    {initError}
+                <h2 className="text-2xl font-bold text-red-600 mb-4">Database Connection Failed</h2>
+                <p className="mb-4 text-gray-600">The application could not find a valid database connection string.</p>
+                
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-sm text-yellow-800 mb-6 space-y-3">
+                    <p><strong>Step 1:</strong> Ensure you have a variable named <code>VITE_DATABASE_URL</code> in your Vercel Environment Variables.</p>
+                    <p><strong>Step 2 (Crucial):</strong> If you just added or renamed the variable, <strong>you must Redeploy</strong> your application in Vercel for the changes to take effect.</p>
                 </div>
-                <p className="text-sm text-gray-500">
-                    <strong>Tip:</strong> Ensure your <code>VITE_DATABASE_URL</code> is correctly set in your Vercel Environment Variables or .env file.
-                </p>
+                
                 <button 
                     onClick={() => window.location.reload()}
-                    className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
                 >
-                    Retry
+                    I have Redeployed, Try Again
                 </button>
             </div>
         </div>

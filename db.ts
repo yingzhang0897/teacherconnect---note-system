@@ -2,27 +2,27 @@ import { Client } from '@neondatabase/serverless';
 
 // Helper to find the Database URL in various environment configurations
 const getDatabaseUrl = () => {
-  // 1. Standard Node/Process env
-  if (typeof process !== 'undefined' && process.env?.VITE_DATABASE_URL) {
-    return process.env.VITE_DATABASE_URL;
-  }
-  
-  // 2. Vite / Modern Frontend env
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_VITE_DATABASE_URL) {
-    // @ts-ignore
-    return import.meta.env.VITE_VITE_DATABASE_URL;
+  // 1. Check process.env (Common in Vercel/Node/CRA/Next.js)
+  if (typeof process !== 'undefined' && process.env) {
+    if (process.env.VITE_DATABASE_URL) return process.env.VITE_DATABASE_URL;
+    if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+    if (process.env.NEXT_PUBLIC_DATABASE_URL) return process.env.NEXT_PUBLIC_DATABASE_URL;
+    if (process.env.REACT_APP_DATABASE_URL) return process.env.REACT_APP_DATABASE_URL;
   }
 
-  // 3. Next.js Public env
-  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VITE_DATABASE_URL) {
-    return process.env.NEXT_PUBLIC_VITE_DATABASE_URL;
+  // 2. Check import.meta.env (Native Vite)
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    if (import.meta.env.VITE_DATABASE_URL) return import.meta.env.VITE_DATABASE_URL;
+    // @ts-ignore
+    if (import.meta.env.DATABASE_URL) return import.meta.env.DATABASE_URL;
   }
   
   return null;
 };
 
-const VITE_DATABASE_URL = getDatabaseUrl();
+const DATABASE_URL = getDatabaseUrl();
 
 export const db = {
   /**
@@ -31,12 +31,12 @@ export const db = {
    * @param params Optional parameters for the query
    */
   async query(text: string, params?: any[]) {
-    if (!VITE_DATABASE_URL) {
-      console.error("VITE_DATABASE_URL configuration missing. Checked process.env and import.meta.env.");
-      throw new Error("VITE_DATABASE_URL is not configured. Please check your .env file or Vercel Environment Variables.");
+    if (!DATABASE_URL) {
+      console.error("DATABASE_URL configuration missing.");
+      throw new Error("Missing Database Configuration");
     }
 
-    const client = new Client(VITE_DATABASE_URL);
+    const client = new Client(DATABASE_URL);
     
     try {
       await client.connect();
@@ -55,6 +55,10 @@ export const db = {
    * Helper to initialize the database tables if they don't exist.
    */
   async initSchema() {
+    if (!DATABASE_URL) {
+       throw new Error("Missing Database Configuration");
+    }
+
     const schema = `
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
