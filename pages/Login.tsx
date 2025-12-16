@@ -13,14 +13,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simulate network request
-    setTimeout(() => {
-      const users = storageService.getUsers();
+    try {
+      const users = await storageService.getUsers();
       // Simple username matching (case-insensitive)
       const user = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
       
@@ -28,9 +27,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         onLogin(user);
       } else {
         setError('User not found. Please check your username.');
-        setIsLoading(false);
       }
-    }, 800);
+    } catch (err) {
+      setError('Failed to connect to login service.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

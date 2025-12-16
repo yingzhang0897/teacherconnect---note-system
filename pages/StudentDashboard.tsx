@@ -13,19 +13,24 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser 
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [feedbackContent, setFeedbackContent] = useState('');
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     refreshData();
   }, [currentUser.id]);
 
-  const refreshData = () => {
-    const allNotes = storageService.getNotes();
+  const refreshData = async () => {
+    setIsLoading(true);
+    const allNotes = await storageService.getNotes();
+    const allFeedbacks = await storageService.getFeedback();
+    
     // Filter notes specifically for this student
     setNotes(allNotes.filter(n => n.studentId === currentUser.id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    setFeedbacks(storageService.getFeedback().filter(f => f.studentId === currentUser.id));
+    setFeedbacks(allFeedbacks.filter(f => f.studentId === currentUser.id));
+    setIsLoading(false);
   };
 
-  const handleSubmitQuestion = () => {
+  const handleSubmitQuestion = async () => {
     if (!selectedNote || !feedbackContent.trim()) return;
 
     const newFeedback: Feedback = {
@@ -37,11 +42,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser 
       isRead: false
     };
 
-    storageService.saveFeedback(newFeedback);
+    await storageService.saveFeedback(newFeedback);
     setFeedbackContent('');
     refreshData();
-    // Keep modal open so they can see their question added effectively (or close it)
-    // For now, let's close it to be clean
     setSelectedNote(null); 
     alert('Question sent to your teacher!');
   };
@@ -62,7 +65,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser 
       </header>
 
       <div className="grid gap-6">
-        {notes.length === 0 && (
+        {isLoading && <p>Loading your notes...</p>}
+        
+        {!isLoading && notes.length === 0 && (
             <div className="text-center py-10 bg-white rounded-lg border border-dashed border-gray-300">
                 <Icons.Book />
                 <p className="mt-2 text-gray-500">No notes assigned to you yet.</p>

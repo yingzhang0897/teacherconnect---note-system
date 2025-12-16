@@ -23,19 +23,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
   const [editingStudent, setEditingStudent] = useState<Partial<User>>({});
   const [editingNote, setEditingNote] = useState<Partial<Note>>({});
   const [aiLoading, setAiLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
 
   useEffect(() => {
     refreshData();
   }, []);
 
-  const refreshData = () => {
-    setStudents(storageService.getUsers().filter(u => u.role === UserRole.STUDENT));
-    setNotes(storageService.getNotes().filter(n => n.teacherId === currentUser.id));
-    setFeedbacks(storageService.getFeedback());
+  const refreshData = async () => {
+    setDataLoading(true);
+    const [allUsers, allNotes, allFeedbacks] = await Promise.all([
+        storageService.getUsers(),
+        storageService.getNotes(),
+        storageService.getFeedback()
+    ]);
+    
+    setStudents(allUsers.filter(u => u.role === UserRole.STUDENT));
+    setNotes(allNotes.filter(n => n.teacherId === currentUser.id));
+    setFeedbacks(allFeedbacks);
+    setDataLoading(false);
   };
 
   // --- Student Management ---
-  const handleSaveStudent = () => {
+  const handleSaveStudent = async () => {
     if (!editingStudent.name || !editingStudent.username) return;
     
     const newStudent: User = {
@@ -46,21 +55,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
       level: editingStudent.level || 'A1'
     };
     
-    storageService.saveUser(newStudent);
+    await storageService.saveUser(newStudent);
     setIsStudentModalOpen(false);
     setEditingStudent({});
     refreshData();
   };
 
-  const handleDeleteStudent = (id: string) => {
+  const handleDeleteStudent = async (id: string) => {
     if (confirm('Are you sure you want to remove this student?')) {
-      storageService.deleteUser(id);
+      await storageService.deleteUser(id);
       refreshData();
     }
   };
 
   // --- Note Management ---
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (!editingNote.title || !editingNote.content || !editingNote.studentId) return;
 
     const newNote: Note = {
@@ -73,15 +82,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
       tags: editingNote.tags || []
     };
 
-    storageService.saveNote(newNote);
+    await storageService.saveNote(newNote);
     setIsNoteModalOpen(false);
     setEditingNote({});
     refreshData();
   };
 
-  const handleDeleteNote = (id: string) => {
+  const handleDeleteNote = async (id: string) => {
     if (confirm('Delete this note?')) {
-      storageService.deleteNote(id);
+      await storageService.deleteNote(id);
       refreshData();
     }
   };
@@ -116,6 +125,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
           <span className="mr-2"><Icons.Plus /></span> Add Student
         </Button>
       </div>
+      {dataLoading ? <p>Loading...</p> : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {students.map(s => (
           <Card key={s.id} className="p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -140,6 +150,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 
@@ -152,7 +163,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
         </Button>
       </div>
       <div className="space-y-3">
-        {notes.length === 0 && <p className="text-gray-500 text-center py-10">No notes created yet.</p>}
+        {dataLoading && <p>Loading notes...</p>}
+        {!dataLoading && notes.length === 0 && <p className="text-gray-500 text-center py-10">No notes created yet.</p>}
         {notes.map(n => {
           const student = students.find(s => s.id === n.studentId);
           return (
@@ -184,7 +196,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
     return (
         <div className="space-y-4">
             <h2 className="text-xl font-semibold text-gray-800">Student Questions & Feedback</h2>
-            {myFeedbacks.length === 0 && <p className="text-gray-500">No feedback yet.</p>}
+            {dataLoading && <p>Loading feedback...</p>}
+            {!dataLoading && myFeedbacks.length === 0 && <p className="text-gray-500">No feedback yet.</p>}
             <div className="space-y-3">
                 {myFeedbacks.map(f => {
                     const note = notes.find(n => n.id === f.noteId);
@@ -201,8 +214,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
                                      <p className="text-gray-800 bg-gray-50 p-3 rounded-lg text-sm">{f.content}</p>
                                  </div>
                                  {!f.isRead && (
-                                     <Button size="sm" variant="ghost" onClick={() => {
-                                         storageService.markFeedbackRead(f.id);
+                                     <Button size="sm" variant="ghost" onClick={async () => {
+                                         await storageService.markFeedbackRead(f.id);
                                          refreshData();
                                      }}>Mark Read</Button>
                                  )}
@@ -221,6 +234,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
          <div>
             <h1 className="text-3xl font-bold text-indigo-900">Teacher Dashboard</h1>
             <p className="text-gray-500">Welcome back, {currentUser.name}</p>
+         </div>
+         <div className="flex gap-2">
+             <Button size="sm" variant="secondary" onClick={refreshData} isLoading={dataLoading}>
+                 Refresh Data
+             </Button>
          </div>
       </header>
 

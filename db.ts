@@ -35,7 +35,6 @@ export const db = {
 
   /**
    * Helper to initialize the database tables if they don't exist.
-   * Run this once or manually in your SQL console.
    */
   async initSchema() {
     const schema = `
@@ -66,9 +65,30 @@ export const db = {
         is_read BOOLEAN DEFAULT FALSE
       );
       
-      -- Seed Initial Teacher if not exists
+      -- Seed Initial Teacher
       INSERT INTO users (id, name, username, role)
       VALUES ('t1', 'Teacher', 'master', 'TEACHER')
+      ON CONFLICT (id) DO NOTHING;
+
+      -- Seed Initial Students
+      INSERT INTO users (id, name, username, role, level)
+      VALUES 
+        ('s1', 'Maria Garcia', 'maria', 'STUDENT', 'B2'),
+        ('s2', 'Kenji Tanaka', 'kenji', 'STUDENT', 'A2'),
+        ('s3', 'Sophie Martin', 'sophie', 'STUDENT', 'C1')
+      ON CONFLICT (id) DO NOTHING;
+
+      -- Seed Initial Notes
+      INSERT INTO notes (id, teacher_id, student_id, title, content, created_at, tags)
+      VALUES
+        ('n1', 't1', 's1', 'Advanced Phrasal Verbs', 'Great job today! Remember: "Run into" means to meet by chance. "Run out of" means to have none left. Homework: Write 3 sentences using these.', NOW() - INTERVAL '1 day', ARRAY['Vocabulary', 'B2']),
+        ('n2', 't1', 's2', 'Present Simple vs Continuous', 'Focus on routine (Simple) vs right now (Continuous). I eat breakfast every day. I am eating breakfast now.', NOW() - INTERVAL '2 days', ARRAY['Grammar', 'A2'])
+      ON CONFLICT (id) DO NOTHING;
+
+      -- Seed Initial Feedback
+      INSERT INTO feedback (id, note_id, student_id, content, created_at, is_read)
+      VALUES
+        ('f1', 'n1', 's1', 'Could "Run into" also mean crashing a car?', NOW(), FALSE)
       ON CONFLICT (id) DO NOTHING;
     `;
     

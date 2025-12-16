@@ -1,117 +1,120 @@
+import { db } from '../db';
 import { User, Note, Feedback, UserRole } from '../types';
 
-const STORAGE_KEYS = {
-  USERS: 'teacherconnect_users',
-  NOTES: 'teacherconnect_notes',
-  FEEDBACK: 'teacherconnect_feedback',
-};
+// Helper to map DB snake_case to TS camelCase
+const mapUser = (row: any): User => ({
+  id: row.id,
+  name: row.name,
+  username: row.username,
+  role: row.role as UserRole,
+  level: row.level || undefined
+});
 
-// Seed data
-const INITIAL_USERS: User[] = [
-  { id: 't1', name: 'Teacher', username: 'master', role: UserRole.TEACHER },
-  { id: 's1', name: 'Maria Garcia', username: 'maria', role: UserRole.STUDENT, level: 'B2' },
-  { id: 's2', name: 'Kenji Tanaka', username: 'kenji', role: UserRole.STUDENT, level: 'A2' },
-  { id: 's3', name: 'Sophie Martin', username: 'sophie', role: UserRole.STUDENT, level: 'C1' },
-];
+const mapNote = (row: any): Note => ({
+  id: row.id,
+  teacherId: row.teacher_id,
+  studentId: row.student_id,
+  title: row.title,
+  content: row.content,
+  createdAt: new Date(row.created_at).toISOString(),
+  tags: row.tags || []
+});
 
-const INITIAL_NOTES: Note[] = [
-  {
-    id: 'n1',
-    teacherId: 't1',
-    studentId: 's1',
-    title: 'Advanced Phrasal Verbs',
-    content: 'Great job today! Remember: "Run into" means to meet by chance. "Run out of" means to have none left. Homework: Write 3 sentences using these.',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    tags: ['Vocabulary', 'B2'],
-  },
-  {
-    id: 'n2',
-    teacherId: 't1',
-    studentId: 's2',
-    title: 'Present Simple vs Continuous',
-    content: 'Focus on routine (Simple) vs right now (Continuous). I eat breakfast every day. I am eating breakfast now.',
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    tags: ['Grammar', 'A2'],
-  }
-];
-
-const INITIAL_FEEDBACK: Feedback[] = [
-  {
-    id: 'f1',
-    noteId: 'n1',
-    studentId: 's1',
-    content: 'Could "Run into" also mean crashing a car?',
-    createdAt: new Date().toISOString(),
-    isRead: false,
-  }
-];
-
-const getFromStorage = <T>(key: string, initial: T): T => {
-  const stored = localStorage.getItem(key);
-  if (!stored) {
-    localStorage.setItem(key, JSON.stringify(initial));
-    return initial;
-  }
-  return JSON.parse(stored);
-};
-
-const setStorage = <T>(key: string, data: T): void => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
+const mapFeedback = (row: any): Feedback => ({
+  id: row.id,
+  noteId: row.note_id,
+  studentId: row.student_id,
+  content: row.content,
+  createdAt: new Date(row.created_at).toISOString(),
+  isRead: row.is_read
+});
 
 export const storageService = {
-  getUsers: (): User[] => getFromStorage(STORAGE_KEYS.USERS, INITIAL_USERS),
-  
-  saveUser: (user: User): void => {
-    const users = getFromStorage(STORAGE_KEYS.USERS, INITIAL_USERS);
-    const index = users.findIndex(u => u.id === user.id);
-    if (index >= 0) {
-      users[index] = user;
-    } else {
-      users.push(user);
+  // Initialize Database Schema
+  init: async () => {
+    try {
+      await db.initSchema();
+      console.log('Database initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize database:', error);
     }
-    setStorage(STORAGE_KEYS.USERS, users);
   },
 
-  deleteUser: (id: string): void => {
-    let users = getFromStorage<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
-    users = users.filter(u => u.id !== id);
-    setStorage(STORAGE_KEYS.USERS, users);
-  },
-
-  getNotes: (): Note[] => getFromStorage(STORAGE_KEYS.NOTES, INITIAL_NOTES),
-  
-  saveNote: (note: Note): void => {
-    const notes = getFromStorage(STORAGE_KEYS.NOTES, INITIAL_NOTES);
-    const index = notes.findIndex(n => n.id === note.id);
-    if (index >= 0) {
-      notes[index] = note;
-    } else {
-      notes.push(note);
+  getUsers: async (): Promise<User[]> => {
+    try {
+      const res = await db.query('SELECT * FROM users');
+      return res.rows.map(mapUser);
+    } catch (e) {
+      console.error(e);
+      return [];
     }
-    setStorage(STORAGE_KEYS.NOTES, notes);
-  },
-
-  deleteNote: (id: string): void => {
-    let notes = getFromStorage<Note[]>(STORAGE_KEYS.NOTES, INITIAL_NOTES);
-    notes = notes.filter(n => n.id !== id);
-    setStorage(STORAGE_KEYS.NOTES, notes);
-  },
-
-  getFeedback: (): Feedback[] => getFromStorage(STORAGE_KEYS.FEEDBACK, INITIAL_FEEDBACK),
-  
-  saveFeedback: (feedback: Feedback): void => {
-    const items = getFromStorage(STORAGE_KEYS.FEEDBACK, INITIAL_FEEDBACK);
-    items.push(feedback);
-    setStorage(STORAGE_KEYS.FEEDBACK, items);
   },
   
-  markFeedbackRead: (id: string): void => {
-     const items = getFromStorage<Feedback[]>(STORAGE_KEYS.FEEDBACK, INITIAL_FEEDBACK);
-     const index = items.findIndex(f => f.id === id);
-     if(index >= 0) {
-         items[index].isRead = true;
-         setStorage(STORAGE_KEYS.FEEDBACK, items);
-     }
+  saveUser: async (user: User): Promise<void> => {
+    await db.query(
+      `INSERT INTO users (id, name, username, role, level)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET
+         name = EXCLUDED.name,
+         username = EXCLUDED.username,
+         role = EXCLUDED.role,
+         level = EXCLUDED.level`,
+      [user.id, user.name, user.username, user.role, user.level]
+    );
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+    await db.query('DELETE FROM users WHERE id = $1', [id]);
+  },
+
+  getNotes: async (): Promise<Note[]> => {
+    try {
+      const res = await db.query('SELECT * FROM notes ORDER BY created_at DESC');
+      return res.rows.map(mapNote);
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  },
+  
+  saveNote: async (note: Note): Promise<void> => {
+    await db.query(
+      `INSERT INTO notes (id, teacher_id, student_id, title, content, created_at, tags)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (id) DO UPDATE SET
+         teacher_id = EXCLUDED.teacher_id,
+         student_id = EXCLUDED.student_id,
+         title = EXCLUDED.title,
+         content = EXCLUDED.content,
+         created_at = EXCLUDED.created_at,
+         tags = EXCLUDED.tags`,
+       [note.id, note.teacherId, note.studentId, note.title, note.content, note.createdAt, note.tags]
+    );
+  },
+
+  deleteNote: async (id: string): Promise<void> => {
+    await db.query('DELETE FROM notes WHERE id = $1', [id]);
+  },
+
+  getFeedback: async (): Promise<Feedback[]> => {
+    try {
+      const res = await db.query('SELECT * FROM feedback ORDER BY created_at DESC');
+      return res.rows.map(mapFeedback);
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  },
+  
+  saveFeedback: async (feedback: Feedback): Promise<void> => {
+    await db.query(
+        `INSERT INTO feedback (id, note_id, student_id, content, created_at, is_read)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [feedback.id, feedback.noteId, feedback.studentId, feedback.content, feedback.createdAt, feedback.isRead]
+    );
+  },
+  
+  markFeedbackRead: async (id: string): Promise<void> => {
+     await db.query('UPDATE feedback SET is_read = TRUE WHERE id = $1', [id]);
   }
 };

@@ -1,16 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Login } from './pages/Login';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { User, UserRole } from './types';
 import { Icons } from './components/Icons';
+import { storageService } from './services/storageService';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isDbReady, setIsDbReady] = useState(false);
+
+  useEffect(() => {
+    const initApp = async () => {
+      await storageService.init();
+      setIsDbReady(true);
+    };
+    initApp();
+  }, []);
 
   const handleLogout = () => {
     setCurrentUser(null);
   };
+
+  if (!isDbReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">
+        <div className="flex flex-col items-center">
+            <svg className="animate-spin h-8 w-8 text-indigo-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p>Connecting to Database...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
