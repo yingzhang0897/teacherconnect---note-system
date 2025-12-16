@@ -3,26 +3,26 @@ import { Client } from '@neondatabase/serverless';
 // Helper to find the Database URL in various environment configurations
 const getDatabaseUrl = () => {
   // 1. Standard Node/Process env
-  if (typeof process !== 'undefined' && process.env?.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+  if (typeof process !== 'undefined' && process.env?.VITE_DATABASE_URL) {
+    return process.env.VITE_DATABASE_URL;
   }
   
   // 2. Vite / Modern Frontend env
   // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_DATABASE_URL) {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_VITE_DATABASE_URL) {
     // @ts-ignore
-    return import.meta.env.VITE_DATABASE_URL;
+    return import.meta.env.VITE_VITE_DATABASE_URL;
   }
 
   // 3. Next.js Public env
-  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_DATABASE_URL) {
-    return process.env.NEXT_PUBLIC_DATABASE_URL;
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VITE_DATABASE_URL) {
+    return process.env.NEXT_PUBLIC_VITE_DATABASE_URL;
   }
   
   return null;
 };
 
-const DATABASE_URL = getDatabaseUrl();
+const VITE_DATABASE_URL = getDatabaseUrl();
 
 export const db = {
   /**
@@ -31,12 +31,12 @@ export const db = {
    * @param params Optional parameters for the query
    */
   async query(text: string, params?: any[]) {
-    if (!DATABASE_URL) {
-      console.error("DATABASE_URL configuration missing. Checked process.env and import.meta.env.");
-      throw new Error("DATABASE_URL is not configured. Please check your .env file or Vercel Environment Variables.");
+    if (!VITE_DATABASE_URL) {
+      console.error("VITE_DATABASE_URL configuration missing. Checked process.env and import.meta.env.");
+      throw new Error("VITE_DATABASE_URL is not configured. Please check your .env file or Vercel Environment Variables.");
     }
 
-    const client = new Client(DATABASE_URL);
+    const client = new Client(VITE_DATABASE_URL);
     
     try {
       await client.connect();

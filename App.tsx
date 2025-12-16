@@ -38,7 +38,7 @@ const App: React.FC = () => {
                     {initError}
                 </div>
                 <p className="text-sm text-gray-500">
-                    <strong>Tip:</strong> Ensure your <code>DATABASE_URL</code> is correctly set in your Vercel Environment Variables or .env file.
+                    <strong>Tip:</strong> Ensure your <code>VITE_DATABASE_URL</code> is correctly set in your Vercel Environment Variables or .env file.
                 </p>
                 <button 
                     onClick={() => window.location.reload()}
