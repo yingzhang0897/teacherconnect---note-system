@@ -1,10 +1,28 @@
 import { Client } from '@neondatabase/serverless';
 
-// NOTE: In a production environment, you should never expose your database credentials 
-// in client-side code. This implementation assumes a secure environment or a demo setup.
-// The DATABASE_URL must be provided in the process.env.
+// Helper to find the Database URL in various environment configurations
+const getDatabaseUrl = () => {
+  // 1. Standard Node/Process env
+  if (typeof process !== 'undefined' && process.env?.DATABASE_URL) {
+    return process.env.DATABASE_URL;
+  }
+  
+  // 2. Vite / Modern Frontend env
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_DATABASE_URL) {
+    // @ts-ignore
+    return import.meta.env.VITE_DATABASE_URL;
+  }
 
-const DATABASE_URL = process.env.DATABASE_URL;
+  // 3. Next.js Public env
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_DATABASE_URL) {
+    return process.env.NEXT_PUBLIC_DATABASE_URL;
+  }
+  
+  return null;
+};
+
+const DATABASE_URL = getDatabaseUrl();
 
 export const db = {
   /**
@@ -14,8 +32,8 @@ export const db = {
    */
   async query(text: string, params?: any[]) {
     if (!DATABASE_URL) {
-      console.error("DATABASE_URL is not configured.");
-      throw new Error("Database configuration missing");
+      console.error("DATABASE_URL configuration missing. Checked process.env and import.meta.env.");
+      throw new Error("DATABASE_URL is not configured. Please check your .env file or Vercel Environment Variables.");
     }
 
     const client = new Client(DATABASE_URL);

@@ -32,12 +32,9 @@ const mapFeedback = (row: any): Feedback => ({
 export const storageService = {
   // Initialize Database Schema
   init: async () => {
-    try {
-      await db.initSchema();
-      console.log('Database initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize database:', error);
-    }
+    // We propagate the error so the UI can show a failure message
+    await db.initSchema();
+    console.log('Database initialized successfully');
   },
 
   getUsers: async (): Promise<User[]> => {
@@ -45,8 +42,8 @@ export const storageService = {
       const res = await db.query('SELECT * FROM users');
       return res.rows.map(mapUser);
     } catch (e) {
-      console.error(e);
-      return [];
+      console.error("Failed to fetch users", e);
+      throw e; // Throw so we know if DB is broken
     }
   },
   

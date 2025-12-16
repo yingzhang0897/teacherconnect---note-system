@@ -9,11 +9,17 @@ import { storageService } from './services/storageService';
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isDbReady, setIsDbReady] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
     const initApp = async () => {
-      await storageService.init();
-      setIsDbReady(true);
+      try {
+        await storageService.init();
+        setIsDbReady(true);
+      } catch (err: any) {
+        console.error("Initialization failed:", err);
+        setInitError(err.message || "Failed to connect to the database.");
+      }
     };
     initApp();
   }, []);
@@ -21,6 +27,29 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setCurrentUser(null);
   };
+
+  if (initError) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 p-4">
+            <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border-l-4 border-red-500">
+                <h2 className="text-2xl font-bold text-red-600 mb-4">Connection Error</h2>
+                <p className="mb-4 text-gray-600">Could not connect to the database.</p>
+                <div className="bg-gray-100 p-4 rounded text-sm font-mono text-gray-700 overflow-x-auto mb-4">
+                    {initError}
+                </div>
+                <p className="text-sm text-gray-500">
+                    <strong>Tip:</strong> Ensure your <code>DATABASE_URL</code> is correctly set in your Vercel Environment Variables or .env file.
+                </p>
+                <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                >
+                    Retry
+                </button>
+            </div>
+        </div>
+    );
+  }
 
   if (!isDbReady) {
     return (
